@@ -1,0 +1,71 @@
+- name: WSL provisioner (WSL + Windows via WinGet)
+  hosts: localhost
+  gather_facts: true
+
+  pre_tasks:
+    - name: Detect WSL default user
+      shell: |
+        set -e
+        user=""
+        if [ -f /etc/wsl.conf ]; then
+          user=$(awk -F= '
+            /^\s*\[user\]\s*$/ { in_user=1; next }
+            /^\s*\[/ { in_user=0 }
+            in_user && $1 ~ /^\s*default\s*$/ {
+              gsub(/[[:space:]]/, "", $2); print $2; exit
+            }' /etc/wsl.conf)
+        fi
+        if [ -z "$user" ]; then
+          user=$(awk -F: '$3>=1000 && $1!="nobody" {print $1; exit}' /etc/passwd)
+        fi
+        echo "$user"
+      args:
+        executable: /bin/bash
+      register: detected_user
+      changed_when: false
+      failed_when: false
+
+    - name: Choose dev user
+      set_fact:
+        dev_user: "{{ (detected_user.stdout | trim) if (detected_user.stdout | trim) else (lookup('env','DEVBOX_USER') | default('dev', true)) }}"
+        dev_home: "/home/{{ (detected_user.stdout | trim) if (detected_user.stdout | trim) else (lookup('env','DEVBOX_USER') | default('dev', true)) }}"
+
+    - name: Show provisioning context
+      debug:
+        msg:
+          - "Starting WSL provisioner playbook."
+          - "dev_user={{ dev_user }}, dev_home={{ dev_home }}"
+          - "detected_user={{ detected_user.stdout | default('') | trim }}"
+
+    - name: Ensure dev user exists + passwordless sudo + ~/code
+      become: true
+      block:
+        - name: Ensure dev user exists
+          user:
+            name: "{{ dev_user }}"
+            shell: /bin/bash
+            groups: sudo
+            append: true
+            create_home: true
+
+        - name: Ensure passwordless sudo for dev user
+          copy:
+            dest: "/etc/sudoers.d/99-{{ dev_user }}-nopasswd"
+            content: "{{ dev_user }} ALL=(ALL) NOPASSWD:ALL\n"
+            owner: root
+            group: root
+            mode: "0440"
+
+        - name: Ensure ~/code exists
+          file:
+            path: "{{ dev_home }}/code"
+            state: directory
+            owner: "{{ dev_user }}"
+            group: "{{ dev_user }}"
+            mode: "0755"
+
+  roles:
+    - role: wsl_base
+    - role: docker_engine
+    - role: codex
+    - role: windows_winget

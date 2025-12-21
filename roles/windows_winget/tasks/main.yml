@@ -1,0 +1,55 @@
+-   name: Status | windows_winget
+    debug:
+        msg:
+            - "windows_winget: installing Docker Desktop, Warp, and JetBrains Toolbox."
+
+-   name: Detect winget working directory
+    command: >
+        bash -lc
+        "for p in /mnt/c/Users/*/AppData/Local/Microsoft/WindowsApps/winget.exe; do
+           if [ -x \"$p\" ]; then
+             echo \"${p%/AppData/Local/Microsoft/WindowsApps/winget.exe}\"
+             exit 0
+           fi
+         done
+         echo /mnt/c/Users"
+    register: winget_cwd_raw
+    changed_when: false
+    failed_when: false
+
+-   name: Set winget working directory
+    set_fact:
+        winget_cwd: "{{ winget_cwd_raw.stdout | trim if (winget_cwd_raw.stdout | trim) else '/mnt/c/Users' }}"
+
+-   name: Install Docker Desktop (WinGet)
+    command: winget.exe install -e --id Docker.DockerDesktop --source winget --accept-source-agreements --accept-package-agreements --disable-interactivity
+    register: winget_docker
+    changed_when: winget_docker.rc == 0
+    failed_when: winget_docker.rc not in [0, 43]
+    environment:
+        WSL_INTEROP: "{{ lookup('env','WSL_INTEROP') }}"
+        PATH: "{{ lookup('env','PATH') }}"
+    args:
+        chdir: "{{ winget_cwd }}"
+
+-   name: Install Warp (WinGet)
+    command: winget.exe install -e --id Warp.Warp --source winget --accept-source-agreements --accept-package-agreements --disable-interactivity
+    register: winget_warp
+    changed_when: winget_warp.rc == 0
+    failed_when: winget_warp.rc not in [0, 43]
+    environment:
+        WSL_INTEROP: "{{ lookup('env','WSL_INTEROP') }}"
+        PATH: "{{ lookup('env','PATH') }}"
+    args:
+        chdir: "{{ winget_cwd }}"
+
+-   name: Install JetBrains Toolbox (WinGet)
+    command: winget.exe install -e --id JetBrains.Toolbox --source winget --accept-source-agreements --accept-package-agreements --disable-interactivity
+    register: winget_toolbox
+    changed_when: winget_toolbox.rc == 0
+    failed_when: winget_toolbox.rc not in [0, 43]
+    environment:
+        WSL_INTEROP: "{{ lookup('env','WSL_INTEROP') }}"
+        PATH: "{{ lookup('env','PATH') }}"
+    args:
+        chdir: "{{ winget_cwd }}"

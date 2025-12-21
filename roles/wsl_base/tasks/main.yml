@@ -1,0 +1,154 @@
+-   name: Status | wsl_base
+    debug:
+        msg:
+            - "wsl_base: installing base CLI tools."
+            - "wsl_base: configuring systemd and WSL shutdown marker."
+
+-   name: Reduce APT hash mismatch risk
+    become: true
+    copy:
+        dest: /etc/apt/apt.conf.d/99wsl-provisioner
+        content: |
+            Acquire::By-Hash "yes";
+            Acquire::http::No-Cache "true";
+            Acquire::https::No-Cache "true";
+        owner: root
+        group: root
+        mode: "0644"
+
+-   name: Install base CLI tools (git in WSL)
+    become: true
+    apt:
+        name:
+            - git
+            - openssh-client
+            - ca-certificates
+            - curl
+        state: present
+        update_cache: true
+
+-   name: Ensure /etc/wsl.conf exists
+    become: true
+    file:
+        path: /etc/wsl.conf
+        state: file
+        owner: root
+        group: root
+        mode: "0644"
+
+-   name: Ensure systemd is enabled in WSL
+    become: true
+    ini_file:
+        path: /etc/wsl.conf
+        section: boot
+        option: systemd
+        value: "true"
+        create: true
+        state: present
+        no_extra_spaces: true
+    register: wsl_conf_systemd
+
+-   name: Ensure WSL interop is enabled
+    become: true
+    ini_file:
+        path: /etc/wsl.conf
+        section: interop
+        option: enabled
+        value: "true"
+        create: true
+        state: present
+        no_extra_spaces: true
+    register: wsl_conf_interop
+
+-   name: Ensure WSL appends Windows PATH
+    become: true
+    ini_file:
+        path: /etc/wsl.conf
+        section: interop
+        option: appendWindowsPath
+        value: "true"
+        create: true
+        state: present
+        no_extra_spaces: true
+    register: wsl_conf_append
+
+-   name: Dump /etc/wsl.conf for diagnostics
+    command: cat /etc/wsl.conf
+    register: wsl_conf_dump
+    changed_when: false
+    failed_when: false
+
+-   name: Report /etc/wsl.conf
+    debug:
+        msg:
+            - "---- /etc/wsl.conf ----"
+            - "{{ wsl_conf_dump.stdout | default('') }}"
+            - "------------------------"
+
+-   name: Check WSL interop via WSLInterop binfmt
+    command: bash -lc "test -r /proc/sys/fs/binfmt_misc/WSLInterop && grep -q enabled /proc/sys/fs/binfmt_misc/WSLInterop"
+    register: interop_status
+    changed_when: false
+    failed_when: false
+
+-   name: Report WSL interop status
+    debug:
+        msg:
+            - "WSL interop rc={{ interop_status.rc }}"
+            - "WSL interop stdout: {{ interop_status.stdout | default('') | trim }}"
+            - "WSL interop stderr: {{ interop_status.stderr | default('') | trim }}"
+
+-   name: Detect init system (PID 1)
+    command: "ps -p 1 -o comm="
+    register: pid1
+    changed_when: false
+
+-   name: Detect WSL config changes
+    set_fact:
+        wsl_conf_changed: >-
+            {{ wsl_conf_systemd.changed
+               or wsl_conf_interop.changed
+               or wsl_conf_append.changed }}
+
+-   name: Determine if WSL shutdown is required
+    set_fact:
+        wsl_shutdown_required: >-
+            {{ (pid1.stdout | trim) != "systemd" or wsl_conf_changed }}
+
+-   name: Report init system
+    debug:
+        msg: "PID 1 is: {{ pid1.stdout | trim }}"
+
+-   name: Ensure devbox state directory exists
+    become: true
+    file:
+        path: /var/lib/devbox
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+-   name: Mark that WSL shutdown is required to activate systemd
+    become: true
+    copy:
+        dest: /var/lib/devbox/requires_wsl_shutdown
+        content: "wsl.conf changed or systemd not active yet\n"
+        owner: root
+        group: root
+        mode: "0644"
+    when: wsl_shutdown_required
+
+-   name: Remove shutdown marker when systemd is active
+    become: true
+    file:
+        path: /var/lib/devbox/requires_wsl_shutdown
+        state: absent
+    when: not wsl_shutdown_required
+
+-   name: Show hint if WSL shutdown is needed
+    debug:
+        msg:
+            - "WSL config changed (systemd/interop) or systemd is not active yet."
+            - "A WSL shutdown is required: run on Windows: wsl --shutdown"
+            - "Bootstrap will do this automatically when using windows/bootstrap.ps1."
+    when: wsl_shutdown_required
