@@ -1,0 +1,29 @@
+{
+  "$schema": "https://aka.ms/terminal-profiles-schema",
+  "copyOnSelect": true,
+  "trimBlockSelection": true,
+  "compatibility": {
+    "allowHeadless": true
+  },
+  "windowingBehavior": "useExisting",
+  "startOnUserLogin": false,
+  "profiles": {
+    "defaults": {
+      "font": {
+        "face": "Cascadia Mono",
+        "size": 12
+      },
+      "useAcrylic": true,
+      "opacity": 90
+    }
+  },
+  "actions": [
+    {
+      "id": "User.QuakeMode",
+      "keys": "ctrl+`",
+      "command": {
+        "action": "quakeMode"
+      }
+    }
+  ]
+}

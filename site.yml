@@ -1,0 +1,48 @@
+- name: WSL provisioner (WSL + Windows via WinGet)
+  hosts: localhost
+  gather_facts: true
+
+  pre_tasks:
+    - name: Choose dev user
+      set_fact:
+        dev_user: "{{ lookup('env','DEVBOX_USER') | default('dev', true) }}"
+        dev_home: "/home/{{ lookup('env','DEVBOX_USER') | default('dev', true) }}"
+
+    - name: Show provisioning context
+      debug:
+        msg:
+          - "Starting WSL provisioner playbook."
+          - "dev_user={{ dev_user }}, dev_home={{ dev_home }}"
+
+    - name: Ensure dev user exists + passwordless sudo + ~/code
+      become: true
+      block:
+        - name: Ensure dev user exists
+          user:
+            name: "{{ dev_user }}"
+            shell: /bin/bash
+            groups: sudo
+            append: true
+            create_home: true
+
+        - name: Ensure passwordless sudo for dev user
+          copy:
+            dest: "/etc/sudoers.d/99-{{ dev_user }}-nopasswd"
+            content: "{{ dev_user }} ALL=(ALL) NOPASSWD:ALL\n"
+            owner: root
+            group: root
+            mode: "0440"
+
+        - name: Ensure ~/code exists
+          file:
+            path: "{{ dev_home }}/code"
+            state: directory
+            owner: "{{ dev_user }}"
+            group: "{{ dev_user }}"
+            mode: "0755"
+
+  roles:
+    - role: wsl_base
+    - role: docker_engine
+    - role: codex
+    - role: windows_winget

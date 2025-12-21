@@ -1,0 +1,101 @@
+- name: Status | windows_winget
+  debug:
+    msg:
+      - "windows_winget: applying winget configuration."
+      - "windows_winget: merging Windows Terminal Preview settings."
+
+- name: Check winget is available
+  command: winget.exe --version
+  register: winget_version
+  changed_when: false
+  failed_when: false
+
+- name: Report winget version
+  debug:
+    msg: "winget version: {{ winget_version.stdout | default('unknown') }}"
+  when: winget_version.rc == 0
+
+- name: Skip if winget isn't available
+  debug:
+    msg:
+      - "winget.exe not found. Skip Windows provisioning."
+      - "Install/enable App Installer / WinGet on Windows, then re-run."
+  when: winget_version.rc != 0
+
+- name: Detect if current Windows token is elevated (admin)
+  command: >
+    powershell.exe -NoProfile -Command
+    "$p = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent());
+     if ($p.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { exit 0 } else { exit 1 }"
+  register: is_admin
+  changed_when: false
+  failed_when: false
+  when: winget_version.rc == 0
+
+- name: Report Windows admin context
+  debug:
+    msg: "Windows admin token: {{ 'true' if is_admin.rc == 0 else 'false' }}"
+  when: winget_version.rc == 0
+
+- name: Hint to run from elevated Windows Terminal if not admin
+  debug:
+    msg:
+      - "Windows provisioning may require Admin context."
+      - "Run the one-liner from elevated Windows Terminal (Admin)."
+  when: winget_version.rc == 0 and is_admin.rc != 0
+
+- name: Convert winget config path to Windows path
+  command: wslpath -w "{{ playbook_dir }}/windows/configuration.winget"
+  register: cfgwin
+  changed_when: false
+  when: winget_version.rc == 0 and is_admin.rc == 0
+
+- name: Apply WinGet configuration (Windows)
+  command: >
+    winget.exe configure -f "{{ cfgwin.stdout }}"
+    --accept-configuration-agreements
+    --disable-interactivity
+  register: winget_apply
+  changed_when: false
+  when: winget_version.rc == 0 and is_admin.rc == 0
+
+- name: Convert Terminal settings template path to Windows path
+  command: wslpath -w "{{ playbook_dir }}/windows/terminal/settings.preview.json"
+  register: termcfg_win
+  changed_when: false
+  when: winget_version.rc == 0 and is_admin.rc == 0
+
+- name: Apply Windows Terminal Preview settings.json (merge with existing)
+  command: >
+    powershell.exe -NoProfile -Command
+    "& { $dst = Join-Path $env:LOCALAPPDATA 'Packages\Microsoft.WindowsTerminalPreview_8wekyb3d8bbwe\LocalState\settings.json';
+    $src = '{{ termcfg_win.stdout }}';
+    New-Item -ItemType Directory -Force (Split-Path $dst) | Out-Null;
+    if (Test-Path $dst) { Copy-Item $dst ($dst + '.bak') -Force };
+    $srcObj = Get-Content -Raw -Path $src | ConvertFrom-Json;
+    if (Test-Path $dst) { $dstObj = Get-Content -Raw -Path $dst | ConvertFrom-Json } else { $dstObj = [pscustomobject]@{} };
+    function Merge-JsonObject { param([object]$Source, [object]$Target);
+      foreach ($prop in $Source.PSObject.Properties) { $name = $prop.Name; $value = $prop.Value;
+        if ($null -eq $value) { $Target | Add-Member -NotePropertyName $name -NotePropertyValue $null -Force; continue };
+        if ($value -is [pscustomobject]) { $targetValue = $Target.$name;
+          if ($targetValue -is [pscustomobject]) { Merge-JsonObject -Source $value -Target $targetValue }
+          else { $Target | Add-Member -NotePropertyName $name -NotePropertyValue $value -Force } }
+        else { $Target | Add-Member -NotePropertyName $name -NotePropertyValue $value -Force } } };
+    Merge-JsonObject -Source $srcObj -Target $dstObj;
+    $dstObj | ConvertTo-Json -Depth 32 | Set-Content -Path $dst -Encoding UTF8; }"
+  changed_when: true
+  when: winget_version.rc == 0 and is_admin.rc == 0
+
+- name: Create Startup shortcut to always launch Windows Terminal in Quake mode
+  command: >
+    powershell.exe -NoProfile -Command
+    "$startup = [Environment]::GetFolderPath('Startup');
+     $lnkPath = Join-Path $startup 'Windows Terminal (Quake).lnk';
+     $wsh = New-Object -ComObject WScript.Shell;
+     $lnk = $wsh.CreateShortcut($lnkPath);
+     $lnk.TargetPath = 'wt.exe';
+     $lnk.Arguments = '-w _quake';
+     $lnk.WorkingDirectory = $env:USERPROFILE;
+     $lnk.Save();"
+  changed_when: true
+  when: winget_version.rc == 0 and is_admin.rc == 0

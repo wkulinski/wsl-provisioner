@@ -1,0 +1,90 @@
+- name: Status | codex
+  debug:
+    msg:
+      - "codex: installing nvm and Node.js 22 for the dev user."
+      - "codex: installing Codex CLI and default config."
+
+- name: Install tooling deps (system)
+  become: true
+  apt:
+    name:
+      - curl
+      - git
+      - unzip
+    state: present
+    update_cache: true
+
+- name: Ensure dev user home dirs exist
+  become: true
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ dev_user }}"
+    group: "{{ dev_user }}"
+    mode: "0755"
+  loop:
+    - "{{ dev_home }}/.nvm"
+    - "{{ dev_home }}/.codex"
+
+- name: Install nvm if missing (dev user)
+  become: true
+  become_user: "{{ dev_user }}"
+  environment:
+    HOME: "{{ dev_home }}"
+    NVM_DIR: "{{ dev_home }}/.nvm"
+  shell: |
+    set -euo pipefail
+    test -s "$NVM_DIR/nvm.sh" ||       curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/master/install.sh | bash
+  args:
+    executable: /bin/bash
+  changed_when: false
+
+- name: Ensure nvm is sourced in .bashrc (dev user)
+  become: true
+  lineinfile:
+    path: "{{ dev_home }}/.bashrc"
+    create: true
+    line: "{{ item }}"
+    state: present
+  loop:
+    - 'export NVM_DIR="$HOME/.nvm"'
+    - '[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"'
+
+- name: Install Node 22 and set default via nvm (dev user)
+  become: true
+  become_user: "{{ dev_user }}"
+  environment:
+    HOME: "{{ dev_home }}"
+    NVM_DIR: "{{ dev_home }}/.nvm"
+  shell: |
+    set -euo pipefail
+    . "$NVM_DIR/nvm.sh"
+    nvm install 22
+    nvm alias default 22
+  args:
+    executable: /bin/bash
+  changed_when: false
+
+- name: Install/upgrade Codex CLI (dev user)
+  become: true
+  become_user: "{{ dev_user }}"
+  environment:
+    HOME: "{{ dev_home }}"
+    NVM_DIR: "{{ dev_home }}/.nvm"
+  shell: |
+    set -euo pipefail
+    . "$NVM_DIR/nvm.sh"
+    npm i -g @openai/codex@latest
+  args:
+    executable: /bin/bash
+  changed_when: false
+
+- name: Create default Codex config if missing (dev user)
+  become: true
+  template:
+    src: codex-config.toml.j2
+    dest: "{{ dev_home }}/.codex/config.toml"
+    owner: "{{ dev_user }}"
+    group: "{{ dev_user }}"
+    mode: "0644"
+  force: false

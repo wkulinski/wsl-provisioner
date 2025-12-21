@@ -1,0 +1,10 @@
+# OS / tooling
+.DS_Store
+Thumbs.db
+
+# Ansible
+*.retry
+
+# Secrets
+**/.env
+**/.env.*

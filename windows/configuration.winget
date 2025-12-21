@@ -1,0 +1,14 @@
+# yaml-language-server: $schema=https://aka.ms/configuration-dsc-schema/0.2
+properties:
+  resources:
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: windowsTerminalPreview
+      settings:
+        id: Microsoft.WindowsTerminal.Preview
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: phpstorm
+      settings:
+        id: JetBrains.PhpStorm
+        source: winget

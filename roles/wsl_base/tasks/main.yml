@@ -1,0 +1,82 @@
+- name: Status | wsl_base
+  debug:
+    msg:
+      - "wsl_base: installing base CLI tools."
+      - "wsl_base: configuring systemd and WSL shutdown marker."
+
+- name: Install base CLI tools (git in WSL)
+  become: true
+  apt:
+    name:
+      - git
+      - openssh-client
+      - ca-certificates
+      - curl
+      - unzip
+      - jq
+      - ripgrep
+    state: present
+    update_cache: true
+
+- name: Ensure /etc/wsl.conf exists
+  become: true
+  file:
+    path: /etc/wsl.conf
+    state: file
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Ensure systemd is enabled in WSL
+  become: true
+  ini_file:
+    path: /etc/wsl.conf
+    section: boot
+    option: systemd
+    value: "true"
+    create: true
+    state: present
+    no_extra_spaces: true
+
+- name: Detect init system (PID 1)
+  command: "ps -p 1 -o comm="
+  register: pid1
+  changed_when: false
+
+- name: Report init system
+  debug:
+    msg: "PID 1 is: {{ pid1.stdout | trim }}"
+
+- name: Ensure devbox state directory exists
+  become: true
+  file:
+    path: /var/lib/devbox
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Mark that WSL shutdown is required to activate systemd
+  become: true
+  copy:
+    dest: /var/lib/devbox/requires_wsl_shutdown
+    content: "systemd enabled but not active yet\n"
+    owner: root
+    group: root
+    mode: "0644"
+  when: (pid1.stdout | trim) != "systemd"
+
+- name: Remove shutdown marker when systemd is active
+  become: true
+  file:
+    path: /var/lib/devbox/requires_wsl_shutdown
+    state: absent
+  when: (pid1.stdout | trim) == "systemd"
+
+- name: Show hint if WSL shutdown is needed
+  debug:
+    msg:
+      - "systemd=true is configured but not active yet."
+      - "A WSL shutdown is required: run on Windows: wsl --shutdown"
+      - "Bootstrap will do this automatically when using windows/bootstrap.ps1."
+  when: (pid1.stdout | trim) != "systemd"
