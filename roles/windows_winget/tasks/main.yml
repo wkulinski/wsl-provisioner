@@ -1,7 +1,7 @@
 -   name: Status | windows_winget
     debug:
         msg:
-            - "windows_winget: installing Docker Desktop, Warp, and JetBrains Toolbox."
+            - "windows_winget: installing Docker Desktop, PowerShell, Windows Terminal, Windows Terminal Quake, and JetBrains Toolbox."
 
 -   name: Detect winget working directory
     command: >
@@ -32,11 +32,129 @@
     args:
         chdir: "{{ winget_cwd }}"
 
--   name: Install Warp (WinGet)
-    command: winget.exe install -e --id Warp.Warp --source winget --accept-source-agreements --accept-package-agreements --disable-interactivity
-    register: winget_warp
-    changed_when: winget_warp.rc == 0
-    failed_when: winget_warp.rc not in [0, 43]
+-   name: Install PowerShell 7 (WinGet)
+    command: winget.exe install -e --id Microsoft.PowerShell --source winget --accept-source-agreements --accept-package-agreements --disable-interactivity
+    register: winget_powershell
+    changed_when: winget_powershell.rc == 0
+    failed_when: winget_powershell.rc not in [0, 43]
+    environment:
+        WSL_INTEROP: "{{ lookup('env','WSL_INTEROP') }}"
+        PATH: "{{ lookup('env','PATH') }}"
+    args:
+        chdir: "{{ winget_cwd }}"
+
+-   name: Install Windows Terminal (WinGet)
+    command: winget.exe install -e --id Microsoft.WindowsTerminal --source winget --accept-source-agreements --accept-package-agreements --disable-interactivity
+    register: winget_windows_terminal
+    changed_when: winget_windows_terminal.rc == 0
+    failed_when: winget_windows_terminal.rc not in [0, 43]
+    environment:
+        WSL_INTEROP: "{{ lookup('env','WSL_INTEROP') }}"
+        PATH: "{{ lookup('env','PATH') }}"
+    args:
+        chdir: "{{ winget_cwd }}"
+
+-   name: Install Windows Terminal Quake (WinGet)
+    command: winget.exe install windows-terminal-quake --source winget --accept-source-agreements --accept-package-agreements --disable-interactivity
+    register: winget_windows_terminal_quake
+    changed_when: winget_windows_terminal_quake.rc == 0
+    failed_when: winget_windows_terminal_quake.rc not in [0, 43]
+    environment:
+        WSL_INTEROP: "{{ lookup('env','WSL_INTEROP') }}"
+        PATH: "{{ lookup('env','PATH') }}"
+    args:
+        chdir: "{{ winget_cwd }}"
+
+-   name: Read WTQ_CONFIG_FILE from Windows environment
+    command: >
+        powershell.exe -NoProfile -Command
+        "$wtqConfigPath = [Environment]::GetEnvironmentVariable('WTQ_CONFIG_FILE','Machine');
+        if ([string]::IsNullOrWhiteSpace($wtqConfigPath)) { $wtqConfigPath = [Environment]::GetEnvironmentVariable('WTQ_CONFIG_FILE','User') }
+        if ([string]::IsNullOrWhiteSpace($wtqConfigPath)) { Write-Output '' } else { Write-Output $wtqConfigPath }"
+    register: wtq_config_env
+    changed_when: false
+    failed_when: false
+    environment:
+        WSL_INTEROP: "{{ lookup('env','WSL_INTEROP') }}"
+        PATH: "{{ lookup('env','PATH') }}"
+    args:
+        chdir: "{{ winget_cwd }}"
+
+-   name: Configure Windows Terminal Quake
+    command: >
+        /mnt/c/Program\ Files/PowerShell/7/pwsh.exe -NoProfile -Command
+        "$ErrorActionPreference = 'Stop';
+        $wtqConfigPath = (Join-Path ([Environment]::GetFolderPath('ApplicationData')) 'wtq\\wtq.jsonc');
+        Write-Output ('Wybrany plik konfiguracyjny WTQ: ' + $wtqConfigPath);
+        $wtqDir = Split-Path -Parent $wtqConfigPath;
+        if (-not (Test-Path -LiteralPath $wtqDir)) { New-Item -ItemType Directory -Path $wtqDir -Force | Out-Null }
+        if (Test-Path -LiteralPath $wtqConfigPath) {
+          $raw = Get-Content -LiteralPath $wtqConfigPath -Raw;
+          if ([string]::IsNullOrWhiteSpace($raw)) {
+            $config = @{}
+          } else {
+            try {
+              $config = $raw | ConvertFrom-Json -ErrorAction Stop
+            } catch {
+              $manualSnippet = @(
+                '{',
+                '  "Apps": [',
+                '    {',
+                '      "Name": "Windows Terminal",',
+                '      "Hotkeys": [ { "Modifiers": "Control", "Key": "F12" } ],',
+                '      "FileName": "wt",',
+                '      "ProcessName": "WindowsTerminal",',
+                '      "Opacity": "90",',
+                '      "HorizontalScreenCoverage": "70",',
+                '      "VerticalScreenCoverage": "40"',
+                '    }',
+                '  ]',
+                '}'
+              ) -join [Environment]::NewLine;
+              Write-Output ('WTQ config parse failed for: ' + $wtqConfigPath);
+              Write-Output 'Wklej ponizszy JSON do pliku konfiguracyjnego recznie:';
+              Write-Output $manualSnippet;
+              exit 0
+            }
+          }
+        } else {
+          $config = @{}
+        }
+        if (-not $config.PSObject.Properties.Match('Apps')) { $config | Add-Member -NotePropertyName 'Apps' -NotePropertyValue @() }
+        $apps = @();
+        if ($null -ne $config.Apps) { $apps = @($config.Apps) }
+        $hasWindowsTerminal = $false;
+        foreach ($app in $apps) {
+          if ($null -eq $app) { continue }
+          if ($app.Name -eq 'Windows Terminal') { $hasWindowsTerminal = $true; break }
+        }
+        if (-not $hasWindowsTerminal) {
+          $apps += @{
+            Name = 'Windows Terminal';
+            Hotkeys = @(@{ Modifiers = 'Control'; Key = 'F12' });
+            FileName = 'wt';
+            ProcessName = 'WindowsTerminal';
+            Opacity = '90';
+            HorizontalScreenCoverage = '70';
+            VerticalScreenCoverage = '40'
+          };
+          $config.Apps = $apps;
+          $config | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $wtqConfigPath -Encoding UTF8
+          Write-Output 'Dodano wpis Windows Terminal do Apps.';
+        } else {
+          Write-Output 'Wpis Windows Terminal juz istnieje, pomijam zmiany.';
+        }"
+    environment:
+        WSL_INTEROP: "{{ lookup('env','WSL_INTEROP') }}"
+        PATH: "{{ lookup('env','PATH') }}"
+    args:
+        chdir: "{{ winget_cwd }}"
+
+-   name: Run Windows Terminal Quake once
+    command: >
+        powershell.exe -NoProfile -Command
+        "if (Get-Command wtq -ErrorAction SilentlyContinue) { Start-Process -FilePath wtq -WindowStyle Hidden | Out-Null } else { Write-Host 'wtq not found in PATH; skipping first run.' }"
+    when: winget_windows_terminal_quake.rc == 0 or (wtq_config_env.stdout | default('') | trim) == ""
     environment:
         WSL_INTEROP: "{{ lookup('env','WSL_INTEROP') }}"
         PATH: "{{ lookup('env','PATH') }}"

@@ -4,6 +4,24 @@
             - "docker_engine: adding Docker apt repo and installing engine."
             - "docker_engine: enabling docker service when systemd is active."
 
+-   name: Define Docker packages
+    set_fact:
+        docker_engine_packages:
+            - docker-ce
+            - docker-ce-cli
+            - containerd.io
+            - docker-buildx-plugin
+            - docker-compose-plugin
+
+-   name: Gather installed package facts
+    become: true
+    package_facts:
+        manager: auto
+
+-   name: Detect missing Docker packages
+    set_fact:
+        docker_engine_missing: "{{ docker_engine_packages | reject('in', (ansible_facts.packages | default({})).keys()) | list }}"
+
 -   name: Install prerequisites
     become: true
     apt:
@@ -43,14 +61,9 @@
 -   name: Install Docker Engine + plugins
     become: true
     apt:
-        name:
-            - docker-ce
-            - docker-ce-cli
-            - containerd.io
-            - docker-buildx-plugin
-            - docker-compose-plugin
+        name: "{{ docker_engine_packages }}"
         state: present
-        update_cache: true
+        update_cache: "{{ docker_engine_missing | length > 0 }}"
 
 -   name: Add dev user to docker group
     become: true

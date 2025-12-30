@@ -223,18 +223,34 @@ awk -F: '$3>=1000 && $1!="nobody" {print $1; exit}' /etc/passwd
 set -euo pipefail
 echo "[bootstrap] Installing Ansible prerequisites..."
 export DEBIAN_FRONTEND=noninteractive
-echo "[bootstrap] apt-get clean + refresh lists"
-apt-get clean
-rm -rf /var/lib/apt/lists/*
-apt-get -o Acquire::By-Hash=yes -o Acquire::http::No-Cache=true -o Acquire::https::No-Cache=true update -y
+ansible_present=0
+if command -v ansible >/dev/null 2>&1; then
+  echo "[bootstrap] ansible present: $(command -v ansible)"
+  echo "[bootstrap] skipping apt-get clean/refresh and ansible install"
+  ansible_present=1
+fi
+if [ "$ansible_present" -eq 0 ]; then
+  echo "[bootstrap] apt-get clean + refresh lists"
+  apt-get clean
+  rm -rf /var/lib/apt/lists/*
+  apt-get -o Acquire::By-Hash=yes -o Acquire::http::No-Cache=true -o Acquire::https::No-Cache=true update -y
+fi
 if ! command -v tar >/dev/null 2>&1; then
   echo "[bootstrap] tar missing -> apt-get install -y tar"
   apt-get install -y tar || { echo "[bootstrap] tar install failed"; apt-cache policy tar || true; exit 1; }
 else
   echo "[bootstrap] tar present: $(command -v tar)"
 fi
-echo "[bootstrap] apt-get install -y ansible curl"
-apt-get install -y ansible curl
+if ! command -v curl >/dev/null 2>&1; then
+  echo "[bootstrap] curl missing -> apt-get install -y curl"
+  apt-get install -y curl || { echo "[bootstrap] curl install failed"; apt-cache policy curl || true; exit 1; }
+else
+  echo "[bootstrap] curl present: $(command -v curl)"
+fi
+if [ "$ansible_present" -eq 0 ]; then
+  echo "[bootstrap] apt-get install -y ansible"
+  apt-get install -y ansible
+fi
 '@
     Invoke-Wsl -command $installPrereqs -context "install-ansible"
 

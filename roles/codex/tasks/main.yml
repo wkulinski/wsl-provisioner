@@ -61,6 +61,22 @@
         line: '[ -s /etc/profile.d/nvm.sh ] && . /etc/profile.d/nvm.sh'
         state: present
 
+-   name: Check if Node 22 is already installed (dev user)
+    become: true
+    become_user: "{{ dev_user }}"
+    environment:
+        HOME: "{{ dev_home }}"
+        NVM_DIR: "{{ dev_home }}/.nvm"
+    shell: |
+        set -euo pipefail
+        . "$NVM_DIR/nvm.sh"
+        nvm version 22
+    args:
+        executable: /bin/bash
+    register: nvm_node_22
+    changed_when: false
+    failed_when: false
+
 -   name: Install Node 22 and set default via nvm (dev user)
     become: true
     become_user: "{{ dev_user }}"
@@ -75,6 +91,28 @@
     args:
         executable: /bin/bash
     changed_when: false
+    when: nvm_node_22.rc != 0 or (nvm_node_22.stdout | trim) == "N/A"
+
+-   name: Check if Codex CLI is installed (dev user)
+    become: true
+    become_user: "{{ dev_user }}"
+    environment:
+        HOME: "{{ dev_home }}"
+        NVM_DIR: "{{ dev_home }}/.nvm"
+    shell: |
+        set -euo pipefail
+        . "$NVM_DIR/nvm.sh"
+        if nvm version 22 >/dev/null 2>&1; then
+          nvm use 22 >/dev/null 2>&1
+        else
+          nvm use default >/dev/null 2>&1 || true
+        fi
+        command -v codex >/dev/null 2>&1
+    args:
+        executable: /bin/bash
+    register: codex_cli_check
+    changed_when: false
+    failed_when: false
 
 -   name: Install/upgrade Codex CLI (dev user)
     become: true
@@ -89,6 +127,7 @@
     args:
         executable: /bin/bash
     changed_when: false
+    when: codex_cli_check.rc != 0
 
 -   name: Create default Codex config if missing (dev user)
     become: true

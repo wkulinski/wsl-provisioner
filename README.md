@@ -1,6 +1,8 @@
 # wsl-provisioner
 
-Automatyczny provisioning środowiska developerskiego: **Windows + WSL (Ubuntu) + Docker (w WSL) + Codex + JetBrains Toolbox + Docker Desktop + Warp**.
+**Uwaga:** rozwiązanie jest w fazie eksperymentalnej. Użycie może w skrajnych wypadkach uszkodzić system.
+
+Automatyczny provisioning środowiska developerskiego: **Windows + WSL (Ubuntu) + Docker (w WSL) + Codex + JetBrains Toolbox + Docker Desktop + Windows Terminal + Windows Terminal Quake**.
 
 Repo zawiera:
 - `windows/bootstrap.ps1`: bootstrap na Windows (Admin) → instaluje WSL + Ubuntu (z fallback `--web-download`), pobiera archiwum repo, odpala Ansible w WSL.
@@ -8,13 +10,17 @@ Repo zawiera:
 
 ## Co to instaluje i konfiguruje
 
+Uwaga: w WSL instalacje APT/Node/Codex są pomijane, jeśli komponent jest już zainstalowany; w Windows winget zwykle zgłasza brak zmian dla już zainstalowanych aplikacji.
+
 ### Windows
 - JetBrains Toolbox
 - Docker Desktop
-- Warp (terminal)
+- PowerShell 7
+- Windows Terminal
+- Windows Terminal Quake
 
 ### WSL (Ubuntu)
-- Tworzy użytkownika dev (z ENV `DEVBOX_USER`, domyślnie `dev`) + `sudo` bez hasła
+- Tworzy (lub zapewnia) użytkownika `dev_user`: jeśli wykryje domyślnego użytkownika WSL, używa jego; w przeciwnym razie bierze `DEVBOX_USER` (domyślnie `dev`) + `sudo` bez hasła
 - Bazowe narzędzia CLI: `git`, `openssh-client`, `curl`
 - Włącza `systemd=true` w `/etc/wsl.conf`
 - Docker Engine + docker compose plugin (w WSL)

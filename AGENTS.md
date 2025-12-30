@@ -3,7 +3,7 @@
 ## Project Structure & Module Organization
 - `site.yml` is the entry Ansible playbook; `ansible.cfg` and `inventory.ini` define local execution defaults.
 - `roles/` contains the provisioning roles (`wsl_base`, `docker_engine`, `codex`, `windows_winget`), each with `tasks/main.yml` and optional templates.
-- `windows/` holds Windows-side assets like `bootstrap.ps1` and `configuration.winget`.
+- `windows/` holds Windows-side assets like `bootstrap.ps1`.
 
 ## Build, Test, and Development Commands
 - `ansible-playbook site.yml` runs the full provisioning from WSL using the default inventory.
