@@ -1,7 +1,7 @@
 -   name: Status | windows_winget
     debug:
         msg:
-            - "windows_winget: installing Docker Desktop, PowerShell, Windows Terminal, Windows Terminal Quake, JetBrains Toolbox, and ShellCheck."
+            - "windows_winget: installing Docker Desktop, PowerShell, Windows Terminal, Windows Terminal Quake, JetBrains Toolbox, ShellCheck, and shfmt."
 
 -   name: Detect winget working directory
     command: >
@@ -48,6 +48,17 @@
     register: winget_shellcheck
     changed_when: winget_shellcheck.rc == 0
     failed_when: winget_shellcheck.rc not in [0, 43]
+    environment:
+        WSL_INTEROP: "{{ lookup('env','WSL_INTEROP') }}"
+        PATH: "{{ lookup('env','PATH') }}"
+    args:
+        chdir: "{{ winget_cwd }}"
+
+-   name: Install shfmt (WinGet)
+    command: winget.exe install -e --id mvdan.shfmt --source winget --accept-source-agreements --accept-package-agreements --disable-interactivity
+    register: winget_shfmt
+    changed_when: winget_shfmt.rc == 0
+    failed_when: winget_shfmt.rc not in [0, 43]
     environment:
         WSL_INTEROP: "{{ lookup('env','WSL_INTEROP') }}"
         PATH: "{{ lookup('env','PATH') }}"
