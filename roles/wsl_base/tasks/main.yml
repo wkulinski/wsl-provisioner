@@ -24,6 +24,7 @@
             - ca-certificates
             - curl
             - make
+            - ripgrep
 
 -   name: Gather installed package facts
     become: true
