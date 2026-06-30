@@ -25,6 +25,7 @@
             - curl
             - make
             - ripgrep
+            - wget
 
 -   name: Gather installed package facts
     become: true
@@ -41,6 +42,50 @@
         name: "{{ base_cli_packages }}"
         state: present
         update_cache: "{{ base_cli_missing | length > 0 }}"
+
+-   name: Ensure keyrings dir exists for GitHub CLI
+    become: true
+    file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: "0755"
+
+-   name: Add GitHub CLI GPG key (idempotent)
+    become: true
+    shell: |
+        set -e
+        test -f /etc/apt/keyrings/githubcli-archive-keyring.gpg || \
+            (curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg -o /etc/apt/keyrings/githubcli-archive-keyring.gpg)
+        chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg
+    args:
+        executable: /bin/bash
+    changed_when: false
+
+-   name: Add GitHub CLI apt repo
+    become: true
+    shell: |
+        set -euo pipefail
+        ARCH="$(dpkg --print-architecture)"
+        echo "deb [arch=${ARCH} signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+            > /etc/apt/sources.list.d/github-cli.list
+    args:
+        executable: /bin/bash
+
+-   name: Gather installed package facts for GitHub CLI
+    become: true
+    package_facts:
+        manager: auto
+
+-   name: Detect missing GitHub CLI package
+    set_fact:
+        github_cli_missing: "{{ 'gh' not in (ansible_facts.packages | default({})) }}"
+
+-   name: Install GitHub CLI (gh)
+    become: true
+    apt:
+        name: gh
+        state: present
+        update_cache: "{{ github_cli_missing }}"
 
 -   name: Check if Alf is installed
     command: bash -lc "command -v alf"

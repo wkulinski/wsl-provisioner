@@ -1,6 +1,97 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="1981c121-440f-4712-a5e7-2e4457df401f" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/.dev.loc" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/codeStyles/codeStyleConfig.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/TODO.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/roles/codex/TODO/phpstorm-mcp-codex-wsl-setup.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/roles/codex/TODO/setup-phpstorm-mcp-windows.ps1" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/roles/codex/TODO/setup-phpstorm-mcp-wsl.sh" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/roles/wsl_base/bashrc/.bashrc" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/roles/wsl_base/bashrc/.bashrc.d/00-env-watcher.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/roles/codex/templates/codex-config.toml.j2" beforeDir="false" afterPath="$PROJECT_DIR$/roles/codex/templates/codex-config.toml.j2" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/roles/wsl_base/tasks/main.yml" beforeDir="false" afterPath="$PROJECT_DIR$/roles/wsl_base/tasks/main.yml" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
   <component name="ComposerSettings">
     <execution />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="McpProjectServerCommands">
+    <commands />
+    <urls />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;customColor&quot;: &quot;&quot;,
+  &quot;associatedIndex&quot;: 4
+}</component>
+  <component name="ProjectId" id="38vsvTnxphISvJLDeV2BvLD4Q6S" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.MCP Project settings loaded": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "SHFMT.PATH": "C:\\Users\\wojci\\AppData\\Roaming\\JetBrains\\PhpStorm2025.3\\plugins\\Shell Script\\shfmt.exe",
+    "codeWithMe.voiceChat.enabledByDefault": "false",
+    "git-widget-placeholder": "master",
+    "last_opened_file_path": "//wsl.localhost/Ubuntu/home/wkulinski/code/wsl-provisioner/roles/codex/TODO",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "preferences.sourceCode.Shell Script",
+    "vue.rearranger.settings.migration": "true"
+  }
+}]]></component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="\\wsl.localhost\Ubuntu\home\wkulinski\code\wsl-provisioner\roles\codex\TODO" />
+    </key>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-php-predefined-a98d8de5180a-6bbb74dbab74-com.jetbrains.php.sharedIndexes-PS-261.25134.104" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="1981c121-440f-4712-a5e7-2e4457df401f" name="Changes" comment="" />
+      <created>1769691609798</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1769691609798</updated>
+      <workItem from="1769691613973" duration="1756000" />
+      <workItem from="1770193024218" duration="602000" />
+      <workItem from="1770285503534" duration="155000" />
+      <workItem from="1770980837517" duration="2815000" />
+      <workItem from="1782802625169" duration="1362000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="UnknownFeatures">
+    <option featureType="com.intellij.fileTypeFactory" implementationName=".bashrc" />
   </component>
 </project>

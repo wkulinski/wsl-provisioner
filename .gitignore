@@ -1,6 +1,7 @@
 # OS / tooling
 .DS_Store
 Thumbs.db
+*:Zone.Identifier
 
 # Ansible
 *.retry
